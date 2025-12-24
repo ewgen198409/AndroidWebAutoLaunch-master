@@ -184,7 +184,7 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
         wv = (MyWebView) mContentView;
         wv.setLayerType(View.LAYER_TYPE_NONE, null);
         wv.getSettings().setRenderPriority(WebSettings.RenderPriority.HIGH);
-        wv.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        wv.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         wv.setWebViewClient(new WebViewClient(){
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
