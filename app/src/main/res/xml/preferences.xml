@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/title_url"
+        android:key="url"
+        android:defaultValue="@string/default_url"
+        android:icon="@android:drawable/sym_action_chat"
+        android:inputType="textUri" />
+    <ListPreference
+        android:title="@string/title_language"
+        android:key="language"
+        android:defaultValue="en"
+        android:entries="@array/language_entries"
+        android:entryValues="@array/language_values"
+        android:icon="@android:drawable/ic_menu_preferences" />
+    <ListPreference
+        android:title="@string/title_theme"
+        android:key="theme"
+        android:defaultValue="auto"
+        android:entries="@array/theme_entries"
+        android:entryValues="@array/theme_values"
+        android:icon="@android:drawable/ic_menu_preferences" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:title="@string/title_launch_on_start"
+        android:key="launch_on_start" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:title="@string/title_lock_screen_on"
+        android:key="screen_lock" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="auto_play_video"
+        android:title="@string/title_auto_play_video" />
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="allow_private_certs"
+        android:title="@string/title_allow_private_certs"/>
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="enable_upnp_renderer"
+        android:title="@string/title_enable_upnp_renderer"/>
+    <PreferenceCategory android:title="UPnP Renderer Info" android:key="upnp_info_category">
+        <EditTextPreference
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/title_renderer_name"
+            android:key="renderer_name"
+            android:defaultValue="Android DLNA Media Player" />
+        <Preference android:title="Local IP" android:key="local_ip" android:summary="Not available" />
+        <Preference android:title="HTTP Port" android:key="http_port" android:summary="8080" />
+        <Preference android:title="Device UUID" android:key="device_uuid" android:summary="Not available" />
+    </PreferenceCategory>
+</PreferenceScreen>

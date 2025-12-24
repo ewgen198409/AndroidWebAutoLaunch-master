@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WebLauncher</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="title_activity_settings">Einstellungen</string>
+    <string name="about">Über</string>
+    <string name="title_launch_on_start">Autostart aktivieren</string>
+    <string name="title_lock_screen_on">Sperrbildschirm ein</string>
+    <string name="title_auto_play_video">Video automatisch abspielen</string>
+    <string name="title_allow_private_certs">Alle Zertifikate vertrauen</string>
+    <string name="about_html">&lt;html&gt;
+&lt;body&gt;
+&lt;h1&gt;Über&lt;/h1&gt;
+
+&lt;h2&gt;Lizenz&lt;/h2&gt;
+&lt;p&gt;Copyright 2019-2025 Benjamin Hardill&lt;/p&gt;
+
+&lt;p&gt;Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at&lt;/p&gt;
+
+&lt;p&gt;    &lt;a href=&quot;http://www.apache.org/licenses/LICENSE-2.0&quot;&gt;http://www.apache.org/licenses/LICENSE-2.0&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.&lt;/p&gt;
+
+&lt;h2&gt;Attribution&lt;/h2&gt;
+Icon made by &lt;a href=&quot;http://www.freepik.com/&quot;&gt;Freepik&lt;/a&gt; from &lt;a href=&quot;http://www.flaticon.com/&quot;&gt;www.flaticon.com&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;</string>
+    <string name="https_error_html">&lt;html&gt;
+&lt;body&gt;
+&lt;h1&gt;HTTPS-Zertifikatfehler&lt;/h1&gt;
+
+&lt;p&gt;Das Serverzertifikat ist nicht gültig.&lt;/p&gt;
+&lt;p&gt;Sie können die Überprüfung in den Einstellungen deaktivieren&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</string>
+    <string name="title_enable_upnp_renderer">UPnP Audio Renderer aktivieren</string>
+    <string name="title_url">URL</string>
+    <string name="title_language">Sprache</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_russian">Русский</string>
+    <string-array name="language_entries">
+        <item>@string/language_english</item>
+        <item>@string/language_german</item>
+        <item>@string/language_russian</item>
+    </string-array>
+    <string-array name="language_values">
+        <item>en</item>
+        <item>de</item>
+        <item>ru</item>
+    </string-array>
+</resources>
