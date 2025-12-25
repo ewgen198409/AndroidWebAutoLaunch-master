@@ -6,7 +6,7 @@
         android:singleLine="true"
         android:title="@string/title_url"
         android:key="url"
-        android:defaultValue="@string/default_url"
+        android:defaultValue=""
         android:icon="@android:drawable/sym_action_chat"
         android:inputType="textUri" />
     <ListPreference
@@ -43,6 +43,18 @@
         android:defaultValue="false"
         android:key="enable_upnp_renderer"
         android:title="@string/title_enable_upnp_renderer"/>
+    <ListPreference
+        android:title="@string/title_media_player"
+        android:key="media_player"
+        android:defaultValue="default"
+        android:icon="@android:drawable/ic_media_play" />
+    <ListPreference
+        android:title="@string/title_ui_size"
+        android:key="ui_size"
+        android:defaultValue="normal"
+        android:entries="@array/ui_size_entries"
+        android:entryValues="@array/ui_size_values"
+        android:icon="@android:drawable/ic_menu_preferences" />
     <PreferenceCategory android:title="UPnP Renderer Info" android:key="upnp_info_category">
         <EditTextPreference
             android:selectAllOnFocus="true"
@@ -51,7 +63,13 @@
             android:key="renderer_name"
             android:defaultValue="Android DLNA Media Player" />
         <Preference android:title="Local IP" android:key="local_ip" android:summary="Not available" />
-        <Preference android:title="HTTP Port" android:key="http_port" android:summary="8080" />
+        <EditTextPreference
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/title_http_port"
+            android:key="http_port"
+            android:defaultValue="8080"
+            android:inputType="number" />
         <Preference android:title="Device UUID" android:key="device_uuid" android:summary="Not available" />
     </PreferenceCategory>
 </PreferenceScreen>

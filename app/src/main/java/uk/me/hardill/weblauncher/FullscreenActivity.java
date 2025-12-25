@@ -40,6 +40,15 @@ import android.webkit.SslErrorHandler;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.MimeTypeMap;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -198,6 +207,29 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
                     httpsError = true;
                 }
             }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (isMediaUrl(url)) {
+                    String mediaPlayer = sharedPref.getString("media_player", "default");
+                    Log.i("MediaPlayer", "Opening media URL: " + url + " with player: " + mediaPlayer);
+                    if (!"default".equals(mediaPlayer)) {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.parse(url), getMimeType(url));
+                        intent.setPackage(mediaPlayer);
+                        try {
+                            startActivity(intent);
+                            Log.i("MediaPlayer", "Successfully opened in external player: " + mediaPlayer);
+                            return true;
+                        } catch (Exception e) {
+                            Log.e("MediaPlayer", "Failed to start media player: " + mediaPlayer, e);
+                        }
+                    } else {
+                        Log.i("MediaPlayer", "Using default WebView player for: " + url);
+                    }
+                }
+                return super.shouldOverrideUrlLoading(view, url);
+            }
         });
 
         wv.setSwipeListener(this);
@@ -208,6 +240,16 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
         wv.getSettings().setDomStorageEnabled(true);
         wv.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         wv.getSettings().setMediaPlaybackRequiresUserGesture(sharedPref.getBoolean("auto_play_video", false));
+
+        // Set UI size based on preference
+        String uiSize = sharedPref.getString("ui_size", "normal");
+        int textZoom = 100; // normal
+        if ("small".equals(uiSize)) {
+            textZoom = 75;
+        } else if ("large".equals(uiSize)) {
+            textZoom = 125;
+        }
+        wv.getSettings().setTextZoom(textZoom);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
                 wv.getSettings().setAlgorithmicDarkeningAllowed(true);
@@ -223,29 +265,34 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
         Log.i("URL !!", url);
         currentURL = url;
 
-        Uri uri = Uri.parse(url);
-        if (uri.getScheme()!= null && uri.getScheme().equals("file")) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                    AlertDialog alert = new AlertDialog.Builder(getApplicationContext())
-                            .setMessage("To access 'file://' URLs we need to request READ External Storage permission")
-                            .setCancelable(false)
-                            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    ActivityCompat.requestPermissions(FullscreenActivity.this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
-                                }
-                            })
-                            .create();
-                    alert.show();
+        // Auto-detect Home Assistant if URL is not set
+        if (url.isEmpty()) {
+            autoDetectHomeAssistant();
+        } else {
+            Uri uri = Uri.parse(url);
+            if (uri.getScheme()!= null && uri.getScheme().equals("file")) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                        AlertDialog alert = new AlertDialog.Builder(getApplicationContext())
+                                .setMessage("To access 'file://' URLs we need to request READ External Storage permission")
+                                .setCancelable(false)
+                                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        ActivityCompat.requestPermissions(FullscreenActivity.this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
+                                    }
+                                })
+                                .create();
+                        alert.show();
+                    } else {
+                        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
+                    }
                 } else {
-                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
+                    wv.loadUrl(url);
                 }
             } else {
                 wv.loadUrl(url);
             }
-        } else {
-            wv.loadUrl(url);
         }
 
         boolean screenOn = sharedPref.getBoolean("screen_lock", false);
@@ -310,6 +357,18 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
                 hide();
                 Intent intent1 = new Intent(FullscreenActivity.this, MainActivity.class);
                 FullscreenActivity.this.startActivity(intent1);
+                return true;
+            }
+        });
+
+        MenuItem closeMenuItem = menu.findItem(R.id.action_close);
+        closeMenuItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                Intent serviceIntent = new Intent(FullscreenActivity.this, UpnpAudioRendererService.class);
+                stopService(serviceIntent);
+                finish();
+                System.exit(0);
                 return true;
             }
         });
@@ -490,6 +549,96 @@ public class FullscreenActivity extends AppCompatActivity implements SwipeLister
                 break;
         }
         AppCompatDelegate.setDefaultNightMode(mode);
+    }
+
+    private boolean isMediaUrl(String url) {
+        String lowerUrl = url.toLowerCase();
+        return lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".avi") || lowerUrl.endsWith(".mkv") ||
+               lowerUrl.endsWith(".mp3") || lowerUrl.endsWith(".wav") || lowerUrl.endsWith(".flac") ||
+               lowerUrl.contains("video") || lowerUrl.contains("audio");
+    }
+
+    private String getMimeType(String url) {
+        String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+    }
+
+    private void autoDetectHomeAssistant() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            // First try known hostnames
+            String[] hosts = {"homeassistant.local", "hass.local", "hassio.local", "server-hass.local"};
+            boolean found = false;
+            for (String host : hosts) {
+                if (checkHost(host)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // If not found, try scanning local subnet in parallel
+                Log.i("AutoDetect", "Scanning local subnet for port 8123");
+                String localIp = getLocalIp();
+                if (localIp != null && localIp.startsWith("192.168.")) {
+                    String[] parts = localIp.split("\\.");
+                    String subnet = parts[0] + "." + parts[1] + "." + parts[2];
+                    ExecutorService scanExecutor = Executors.newFixedThreadPool(20);
+                    for (int i = 1; i <= 254; i++) {
+                        String ip = subnet + "." + i;
+                        scanExecutor.submit(() -> checkHost(ip));
+                    }
+                    scanExecutor.shutdown();
+                    Log.i("AutoDetect", "Subnet scan started with 20 parallel threads");
+                }
+            }
+            if (!found) {
+                Log.i("AutoDetect", "No Home Assistant found, leaving URL empty");
+            }
+        });
+    }
+
+    private boolean checkHost(String host) {
+        try {
+            URL url = new URL("http://" + host + ":8123/");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.setRequestMethod("GET");
+            int responseCode = conn.getResponseCode();
+            if (responseCode >= 200 && responseCode < 300) {
+                Log.i("AutoDetect", "Found Home Assistant at: " + host + " (response: " + responseCode + ")");
+                runOnUiThread(() -> {
+                    sharedPref.edit().putString("url", "http://" + host + ":8123/").apply();
+                    currentURL = "http://" + host + ":8123/";
+                    wv.loadUrl(currentURL);
+                });
+                return true;
+            } else {
+                Log.d("AutoDetect", "Host " + host + " responded with code: " + responseCode);
+            }
+        } catch (IOException e) {
+            Log.d("AutoDetect", "Host " + host + " failed: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private String getLocalIp() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = networkInterfaces.nextElement();
+                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (!address.isLoopbackAddress() && address.getHostAddress().indexOf(':') == -1) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("AutoDetect", "Error getting local IP", e);
+        }
+        return null;
     }
 
 

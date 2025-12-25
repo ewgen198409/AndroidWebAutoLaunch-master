@@ -50,15 +50,16 @@ public class UpnpAudioRendererService extends Service {
 
     private MediaPlayer mediaPlayer;
     private Handler handler;
+    private SharedPreferences prefs;
     private int volume = 50;
     private String currentUri = "";
     private String currentMetaData = "";
-    
+
     // Добавлены поля для метаданных
     private String mediaTitle = "";
     private String mediaArtist = "";
     private String mediaContentType = "audio/mpeg";
-    
+
     private String transportState = "STOPPED"; // STOPPED, PLAYING, PAUSED_PLAYBACK
     private int mediaDurationMs = 0; // Cached duration in ms
     private int mediaPositionMs = 0; // For simplicity, update on query if playing
@@ -77,16 +78,38 @@ public class UpnpAudioRendererService extends Service {
     private ServerSocket httpServerSocket;
     private Thread httpServerThread;
     private boolean httpServerRunning = false;
-    private static final int HTTP_PORT = 8080;
+    private int httpPort = 8080;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "=== DLNA Audio Renderer Service CREATED ===");
 
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        try {
+            httpPort = Integer.parseInt(prefs.getString("http_port", "8080"));
+        } catch (NumberFormatException e) {
+            httpPort = 8080;
+        }
+        Log.i(TAG, "Using HTTP port: " + httpPort);
+
+        // Восстановление сохраненных состояний
+        volume = prefs.getInt("renderer_volume", 50);
+        transportState = prefs.getString("renderer_transport_state", "STOPPED");
+        currentUri = prefs.getString("renderer_current_uri", "");
+        currentMetaData = prefs.getString("renderer_current_metadata", "");
+        mediaTitle = prefs.getString("renderer_media_title", "");
+        mediaArtist = prefs.getString("renderer_media_artist", "");
+
+        Log.i(TAG, "Restored states - Volume: " + volume + ", TransportState: " + transportState + ", URI: " + currentUri);
+
         handler = new Handler(Looper.getMainLooper());
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+        // Применить сохраненную громкость к MediaPlayer
+        float volumeFloat = volume / 100.0f;
+        mediaPlayer.setVolume(volumeFloat, volumeFloat);
 
         setupMediaPlayerListeners();
         createNotificationChannel();
@@ -123,6 +146,7 @@ public class UpnpAudioRendererService extends Service {
             mediaDurationMs = mp.getDuration();
             mp.start();
             transportState = "PLAYING";
+            prefs.edit().putString("renderer_transport_state", transportState).apply();
             String title = !mediaTitle.isEmpty() ? mediaTitle : getUriFilename(currentUri);
             updateNotification("Playing", title, mediaArtist);
             Log.i(TAG, "Transport state changed to: PLAYING");
@@ -132,6 +156,7 @@ public class UpnpAudioRendererService extends Service {
         mediaPlayer.setOnCompletionListener(mp -> {
             Log.i(TAG, "Playback completed");
             transportState = "STOPPED";
+            prefs.edit().putString("renderer_transport_state", transportState).apply();
             mediaDurationMs = 0;
             updateNotification("Stopped", "", "");
             Log.i(TAG, "Transport state changed to: STOPPED");
@@ -141,6 +166,7 @@ public class UpnpAudioRendererService extends Service {
         mediaPlayer.setOnErrorListener((mp, what, extra) -> {
             Log.e(TAG, "Media player error: " + what + ", " + extra);
             transportState = "STOPPED";
+            prefs.edit().putString("renderer_transport_state", transportState).apply();
             mediaDurationMs = 0;
             updateNotification("Playback Error", "", "");
             Log.i(TAG, "Transport state changed to: STOPPED (error)");
@@ -233,6 +259,7 @@ public class UpnpAudioRendererService extends Service {
     // Public methods for future UPnP integration
     public void setCurrentUri(String uri) {
         this.currentUri = uri;
+        prefs.edit().putString("renderer_current_uri", uri).apply();
         Log.i(TAG, "URI set: " + uri);
     }
 
@@ -255,6 +282,7 @@ public class UpnpAudioRendererService extends Service {
                 if ("PAUSED_PLAYBACK".equals(transportState)) {
                     mediaPlayer.start();
                     transportState = "PLAYING";
+                    prefs.edit().putString("renderer_transport_state", transportState).apply();
                     String title = !mediaTitle.isEmpty() ? mediaTitle : getUriFilename(currentUri);
                     updateNotification("Playing", title, mediaArtist);
                     Log.i(TAG, "Resumed from pause");
@@ -264,6 +292,7 @@ public class UpnpAudioRendererService extends Service {
                     mediaPlayer.setDataSource(currentUri);
                     mediaPlayer.prepareAsync();
                     transportState = "TRANSITIONING";
+                    prefs.edit().putString("renderer_transport_state", transportState).apply();
                     String title = !mediaTitle.isEmpty() ? mediaTitle : getUriFilename(currentUri);
                     updateNotification("Loading", title, mediaArtist);
                     Log.i(TAG, "Starting playback");
@@ -272,6 +301,7 @@ public class UpnpAudioRendererService extends Service {
             } catch (Exception e) {
                 Log.e(TAG, "Play failed", e);
                 transportState = "STOPPED";
+                prefs.edit().putString("renderer_transport_state", transportState).apply();
                 updateNotification("Playback failed", "", "");
                 notifyAvTransportChange();
             }
@@ -283,6 +313,7 @@ public class UpnpAudioRendererService extends Service {
             if ("PLAYING".equals(transportState) && mediaPlayer.isPlaying()) {
                 mediaPlayer.pause();
                 transportState = "PAUSED_PLAYBACK";
+                prefs.edit().putString("renderer_transport_state", transportState).apply();
                 String title = !mediaTitle.isEmpty() ? mediaTitle : getUriFilename(currentUri);
                 updateNotification("Paused", title, mediaArtist);
                 Log.i(TAG, "Playback paused");
@@ -293,6 +324,7 @@ public class UpnpAudioRendererService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Error pausing playback", e);
             transportState = "STOPPED";
+            prefs.edit().putString("renderer_transport_state", transportState).apply();
             notifyAvTransportChange();
         }
     }
@@ -302,6 +334,7 @@ public class UpnpAudioRendererService extends Service {
             if (!"STOPPED".equals(transportState)) {
                 mediaPlayer.stop();
                 transportState = "STOPPED";
+                prefs.edit().putString("renderer_transport_state", transportState).apply();
                 mediaDurationMs = 0;
                 updateNotification("Stopped", "", "");
                 Log.i(TAG, "Playback stopped");
@@ -312,6 +345,7 @@ public class UpnpAudioRendererService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Error stopping playback", e);
             transportState = "STOPPED";
+            prefs.edit().putString("renderer_transport_state", transportState).apply();
             notifyAvTransportChange();
         }
     }
@@ -320,6 +354,7 @@ public class UpnpAudioRendererService extends Service {
         volume = Math.max(0, Math.min(100, newVolume));
         float volumeFloat = volume / 100.0f;
         mediaPlayer.setVolume(volumeFloat, volumeFloat);
+        prefs.edit().putInt("renderer_volume", volume).apply();
         Log.i(TAG, "Volume set to: " + volume);
         notifyRenderingControlChange();
     }
@@ -503,7 +538,7 @@ public class UpnpAudioRendererService extends Service {
 
         response.append("HTTP/1.1 200 OK\r\n");
         response.append("CACHE-CONTROL: max-age=1800\r\n");
-        response.append("LOCATION: http://").append(localIP).append(":8080/description.xml\r\n");
+        response.append("LOCATION: http://").append(localIP).append(":").append(httpPort).append("/description.xml\r\n");
         response.append("SERVER: Android/UPnP/1.0 WebLauncher/1.0\r\n");
         response.append("ST: ").append(st).append("\r\n");
         response.append("USN: uuid:").append(deviceUUID).append("::").append(st).append("\r\n");
@@ -528,8 +563,8 @@ public class UpnpAudioRendererService extends Service {
         httpServerRunning = true;
         httpServerThread = new Thread(() -> {
             try {
-                httpServerSocket = new ServerSocket(HTTP_PORT);
-                Log.i(TAG, "HTTP server started on port " + HTTP_PORT);
+                httpServerSocket = new ServerSocket(httpPort);
+                Log.i(TAG, "HTTP server started on port " + httpPort);
 
                 while (httpServerRunning) {
                     try {
@@ -719,6 +754,11 @@ public class UpnpAudioRendererService extends Service {
             String metaData = extractXmlValue(soapBody, "CurrentURIMetaData");
 
             if (uri != null) {
+                // Останавливаем текущий поток, если он играет
+                if (!"STOPPED".equals(transportState)) {
+                    stopMedia();
+                }
+
                 setCurrentUri(uri);
 
                 // Если метаданных нет или пусто — создаём минимальный валидный DIDL
@@ -742,6 +782,11 @@ public class UpnpAudioRendererService extends Service {
                     mediaTitle = currentTime + " - " + fileName;
                     mediaArtist = "";
                 }
+
+                // Сохраняем метаданные
+                prefs.edit().putString("renderer_current_metadata", currentMetaData).apply();
+                prefs.edit().putString("renderer_media_title", mediaTitle).apply();
+                prefs.edit().putString("renderer_media_artist", mediaArtist).apply();
 
                 Log.i(TAG, "Set AV Transport URI: " + uri + ", Title: " + mediaTitle + ", Artist: " + mediaArtist);
                 notifyAvTransportChange();

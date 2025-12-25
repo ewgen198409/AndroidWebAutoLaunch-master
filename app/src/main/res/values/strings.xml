@@ -73,5 +73,22 @@ Icon made by &lt;a href=&quot;http://www.freepik.com/&quot;&gt;Freepik&lt;/a&gt;
         <item>dark</item>
         <item>auto</item>
     </string-array>
+    <string name="title_media_player">Media Player</string>
+    <string name="title_ui_size">UI Size</string>
+    <string name="ui_size_small">Small</string>
+    <string name="ui_size_normal">Normal</string>
+    <string name="ui_size_large">Large</string>
+    <string-array name="ui_size_entries">
+        <item>@string/ui_size_small</item>
+        <item>@string/ui_size_normal</item>
+        <item>@string/ui_size_large</item>
+    </string-array>
+    <string-array name="ui_size_values">
+        <item>small</item>
+        <item>normal</item>
+        <item>large</item>
+    </string-array>
+    <string name="title_http_port">HTTP Port</string>
+    <string name="close">Close</string>
 
 </resources>
