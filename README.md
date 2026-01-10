@@ -2,6 +2,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub release](https://img.shields.io/badge/release-2.0.0-blue.svg)](https://github.com/ewgen198409/AndroidWebAutoLaunch-master/releases)
+[![GitHub all releases](https://img.shields.io/github/downloads/ewgen198409/AndroidWebAutoLaunch-master/total)](https://github.com/ewgen198409/AndroidWebAutoLaunch-master/releases)
 
 Простое Android-приложение, предназначенное для автоматического запуска веб-страниц в полноэкранном режиме при загрузке устройства. Идеально подходит для создания выделенных киосковых веб-интерфейсов или информационных панелей на Android-устройствах.
 
